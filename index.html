@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wed-dir | Curated South African Wedding Directory & Planning Suite</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FAF8F5',
+              100: '#F5EFEB',
+              200: '#E7DDD3',
+              300: '#D5C4B4',
+              600: '#9C6644',
+              700: '#7F4F24',
+              800: '#582F0E',
+              900: '#2C1808',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-serif-luxury { font-family: 'Playfair Display', serif; }
+    
+    .nav-tab.active {
+      color: #7F4F24;
+      border-bottom: 2px solid #7F4F24;
+      font-weight: 600;
+    }
+    
+    /* Custom sleek scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D5C4B4; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-brand-50 text-stone-800 min-h-screen flex flex-col antialiased selection:bg-brand-200 selection:text-brand-900">
+
+  <!-- ========================================================================= -->
+  <!-- GLOBAL HEADER & AUTH NAVIGATION                                           -->
+  <!-- ========================================================================= -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-brand-200 sticky top-0 z-50 transition">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchView('directory')">
+        <span class="font-serif-luxury text-5xl font-bold tracking-tight text-stone-900">
+          wed<span class="text-brand-600">-</span>dir
+        </span>
+      </div>
+
+      <!-- Navigation Views Switcher -->
+      <nav class="hidden md:flex items-center gap-8 h-full text-xs uppercase tracking-wider font-semibold text-stone-600">
+        <button onclick="switchView('directory')" id="tab-directory" class="nav-tab active h-full flex items-center border-b-2 border-transparent transition px-1">
+          Explore Directory
+        </button>
+        <button onclick="switchView('couples')" id="tab-couples" class="nav-tab h-full flex items-center border-b-2 border-transparent transition px-1">
+          Couples Section
+        </button>
+        <button onclick="switchView('pricing')" id="tab-pricing" class="nav-tab h-full flex items-center border-b-2 border-transparent transition px-1">
+          For Vendors
+        </button>
+      </nav>
+
+      <!-- Auth & Vendor Actions -->
+      <div class="flex items-center gap-3">
+        <!-- Google OAuth UI Container -->
+        <div id="auth-container">
+          <button onclick="signInWithGoogle()" id="btn-google-login" class="inline-flex items-center gap-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 text-xs font-semibold px-4 py-2 rounded-full transition shadow-sm">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Sign in
+          </button>
+
+          <div id="user-profile" class="hidden items-center gap-2">
+            <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-brand-200" />
+            <span id="user-name" class="text-xs font-semibold text-stone-800 hidden sm:inline-block"></span>
+            <button onclick="signOut()" title="Sign out" class="text-[11px] text-stone-500 hover:text-stone-900 border border-stone-200 px-2 py-1 rounded-md">
+              Sign out
+            </button>
+          </div>
+        </div>
+
+        <button onclick="switchView('pricing')" class="hidden sm:inline-block text-xs font-semibold uppercase tracking-wider bg-brand-800 hover:bg-brand-900 text-white px-4 py-2 rounded-full transition shadow-sm">
+          List Business
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Sub-Navigation -->
+    <div class="flex md:hidden border-t border-brand-200 bg-brand-50 px-4 py-2.5 justify-around text-xs font-semibold text-stone-600">
+      <button onclick="switchView('directory')" class="py-1">Directory</button>
+      <button onclick="switchView('couples')" class="py-1">Couples Section</button>
+      <button onclick="switchView('pricing')" class="py-1">For Vendors</button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 1: CLEAN EDITORIAL LANDING PAGE & INFORMATIVE DROPDOWN FILTER SUITE  -->
+  <!-- ========================================================================= -->
+  <section id="view-directory" class="view-panel flex-grow flex flex-col">
+    
+    <!-- Compact Editorial Header -->
+    <div class="bg-gradient-to-r from-brand-100/60 via-brand-50 to-brand-100/40 border-b border-brand-200 py-6 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 class="font-serif-luxury text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
+            Curated Wedding Directory
+          </h1>
+          <p class="text-stone-600 text-xs sm:text-sm mt-0.5 font-light">
+            Venues, fine-art photographers, artisanal caterers, and floral designers.
+          </p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span class="text-xs text-stone-500 hidden md:inline">
+            Filter by Category - Choose your favourites - Manage your options in the couples section
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content: Sticky Left Filter Sidebar + Immediate Vendor Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full flex flex-col lg:flex-row gap-8 items-start">
+      
+      <!-- Sticky Filter Sidebar (Left Column) -->
+      <aside class="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-24 z-30">
+        <div class="bg-white border border-brand-200 rounded-3xl p-5 shadow-sm max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+          
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-brand-100">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-brand-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+              </svg>
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-800">Filter Directory</span>
+            </div>
+            <button onclick="resetAllFilters()" class="text-xs font-semibold text-brand-700 hover:text-brand-900 underline">
+              Reset All
+            </button>
+          </div>
+
+          <!-- Vertical Filters Stack -->
+          <div class="space-y-4">
+            
+            <!-- Filter 1: Category -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Category</label>
+              <div class="relative">
+                <select id="filter-category" onchange="handleFilterChange()" class="w-full appearance-none bg-stone-50 border border-brand-200 hover:border-brand-600 rounded-xl px-3 py-2.5 text-xs text-stone-800 font-medium focus:ring-2 focus:ring-brand-700 focus:outline-none cursor-pointer">
+                  <option value="all">All Categories</option>
+                  <option value="venues">Venues</option>
+                  <option value="photographers">Photographers</option>
+                  <option value="caterers">Caterers</option>
+                  <option value="planners">Planners</option>
+                  <option value="decor_floral">Decor & Floral</option>
+                  <option value="transport">Vehicle Hire</option>
+                  <option value="stationery">Stationery</option>
+                  <option value="music_dj">Music & DJs</option>
+                  <option value="attire_beauty">Attire & Beauty</option>
+                </select>
+                <span class="absolute right-3 top-3 pointer-events-none text-stone-400 text-xs">▼</span>
+              </div>
+            </div>
+
+            <!-- Filter 2: Province -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500">Province</label>
+                <span class="text-[9px] font-semibold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">Western Cape only</span>
+              </div>
+              <div class="relative">
+                <select id="filter-province" disabled class="w-full appearance-none bg-stone-100 border border-stone-200 text-stone-400 rounded-xl px-3 py-2.5 text-xs font-medium cursor-not-allowed">
+                  <option value="Western Cape" selected>Western Cape (236)</option>
+                  <option value="all">All Provinces (South Africa)</option>
+                  <option value="Gauteng">Gauteng (Coming Soon)</option>
+                  <option value="KwaZulu-Natal">KwaZulu-Natal (Coming Soon)</option>
+                  <option value="Eastern Cape">Eastern Cape (Coming Soon)</option>
+                  <option value="Free State">Free State (Coming Soon)</option>
+                  <option value="Mpumalanga">Mpumalanga (Coming Soon)</option>
+                  <option value="North West">North West (Coming Soon)</option>
+                  <option value="Limpopo">Limpopo (Coming Soon)</option>
+                  <option value="Northern Cape">Northern Cape (Coming Soon)</option>
+                </select>
+                <span class="absolute right-3 top-3 pointer-events-none text-stone-300 text-xs">🔒</span>
+              </div>
+            </div>
+
+            <!-- Filter 3: Region -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Region / Area</label>
+              <div class="relative">
+                <select id="filter-region" onchange="handleRegionChange()" class="w-full appearance-none bg-stone-50 border border-brand-200 hover:border-brand-600 rounded-xl px-3 py-2.5 text-xs text-stone-800 font-medium focus:ring-2 focus:ring-brand-700 focus:outline-none cursor-pointer">
+                  <option value="all">All Regions</option>
+                  <option value="Cape Winelands">Cape Winelands (Stellenbosch, Franschhoek, Paarl)</option>
+                  <option value="Cape Town">Cape Town & Peninsula</option>
+                  <option value="West Coast">West Coast (Langebaan, Paternoster)</option>
+                  <option value="Garden Route">Garden Route</option>
+                </select>
+                <span class="absolute right-3 top-3 pointer-events-none text-stone-400 text-xs">▼</span>
+              </div>
+            </div>
+
+            <!-- Filter 4: Town / Suburb -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Town / Suburb</label>
+              <div class="relative">
+                <select id="filter-suburb" onchange="handleFilterChange()" class="w-full appearance-none bg-stone-50 border border-brand-200 hover:border-brand-600 rounded-xl px-3 py-2.5 text-xs text-stone-800 font-medium focus:ring-2 focus:ring-brand-700 focus:outline-none cursor-pointer">
+                  <option value="all">All Towns / Suburbs</option>
+                </select>
+                <span class="absolute right-3 top-3 pointer-events-none text-stone-400 text-xs">▼</span>
+              </div>
+            </div>
+
+            <!-- Filter 5: Sort Order -->
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Sort By</label>
+              <div class="relative">
+                <select id="filter-sort" onchange="handleFilterChange()" class="w-full appearance-none bg-stone-50 border border-brand-200 hover:border-brand-600 rounded-xl px-3 py-2.5 text-xs text-stone-800 font-medium focus:ring-2 focus:ring-brand-700 focus:outline-none cursor-pointer">
+                  <option value="featured_first">Priority (Top Tier First)</option>
+                  <option value="name_asc">Name: A to Z</option>
+                  <option value="name_desc">Name: Z to A</option>
+                </select>
+                <span class="absolute right-3 top-3 pointer-events-none text-stone-400 text-xs">▼</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Active Filter Badges Strip -->
+          <div id="active-filter-tags" class="flex flex-wrap items-center gap-1.5 mt-5 pt-4 border-t border-brand-100 text-xs">
+            <span class="text-stone-400 text-[10px] font-medium uppercase tracking-wider block w-full mb-1">Applied:</span>
+            <span class="bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-brand-200" id="tag-category">All Categories</span>
+            <span class="bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-brand-200" id="tag-province">Western Cape</span>
+            <span class="bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-brand-200" id="tag-region">All Regions</span>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Directory Listings Grid Area (Right Column) -->
+      <div class="flex-1 min-w-0 w-full">
+        <div class="flex items-center justify-between mb-5 pb-3 border-b border-brand-200">
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-600">
+            Showing <span id="vendor-count" class="text-stone-900 font-bold text-sm">0</span> listings
+          </p>
+        </div>
+
+        <!-- Grid Container -->
+        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div class="col-span-full py-20 text-center" id="loading-indicator">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-brand-700 border-t-transparent mb-3"></div>
+            <p class="text-sm text-stone-500">Querying live Supabase listings...</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 2: COMPREHENSIVE COUPLE'S WEDDING MANAGEMENT SUITE                   -->
+  <!-- ========================================================================= -->
+  <section id="view-couples" class="view-panel hidden flex-grow py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+    
+    <!-- Suite Header -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-6 border-b border-brand-200 gap-4">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-widest text-brand-700 bg-brand-100 px-3 py-1 rounded-full border border-brand-200">
+          Couple's Command Centre
+        </span>
+        <h2 class="font-serif-luxury text-3xl sm:text-4xl font-bold text-stone-900 mt-2">
+          Wedding Planning & Vendor Suite
+        </h2>
+        <p class="text-stone-600 text-xs sm:text-sm mt-1">
+          Manage your wedding budget, track vendor bookings by category, and record quotes in one place.
+        </p>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <button onclick="window.print()" class="text-xs font-semibold border border-stone-300 hover:bg-stone-50 bg-white px-4 py-2 rounded-xl transition shadow-sm">
+          🖨️ Print / Export Plan
+        </button>
+        <button onclick="switchView('directory')" class="text-xs font-semibold bg-brand-800 hover:bg-brand-900 text-white px-4 py-2 rounded-xl transition shadow-sm">
+          + Explore Vendors
+        </button>
+      </div>
+    </div>
+
+    <!-- 2-Column Suite Layout -->
+    <div class="flex flex-col lg:flex-row gap-8 items-start w-full">
+      
+      <!-- LEFT COLUMN: Category Checklist -->
+      <aside class="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-24 z-20">
+        <div class="bg-white border border-brand-200 rounded-3xl p-5 shadow-sm">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-brand-100">
+            <div>
+              <h3 class="font-serif-luxury text-base font-bold text-stone-900">Category Checklist</h3>
+              <p class="text-[11px] text-stone-500">Click to filter vendors on directory</p>
+            </div>
+            <span id="checklist-completion-badge" class="text-[10px] font-bold bg-brand-100 text-brand-800 px-2.5 py-1 rounded-full border border-brand-200 shrink-0">
+              0 / 9 Covered
+            </span>
+          </div>
+
+          <div class="space-y-2" id="category-checklist-deck"></div>
+        </div>
+      </aside>
+
+      <!-- RIGHT COLUMN: Budget Planner + Shortlist & Quotes -->
+      <div class="flex-1 min-w-0 space-y-8 w-full">
+        
+        <!-- SECTION A: WEDDING DETAILS & COUNTDOWN BAR -->
+        <div class="bg-white border border-brand-200 rounded-3xl p-6 shadow-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">Wedding Date</label>
+              <input 
+                type="date" 
+                id="planner-date" 
+                onchange="updateWeddingDetails()" 
+                class="w-full text-xs p-2.5 bg-stone-50 border border-brand-200 rounded-xl focus:ring-1 focus:ring-brand-700" 
+              />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">Target Guest Count</label>
+              <input 
+                type="number" 
+                id="planner-guests" 
+                placeholder="e.g. 100" 
+                onchange="updateWeddingDetails()" 
+                class="w-full text-xs p-2.5 bg-stone-50 border border-brand-200 rounded-xl focus:ring-1 focus:ring-brand-700" 
+              />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">Total Target Budget (ZAR)</label>
+              <input 
+                type="number" 
+                id="planner-budget" 
+                placeholder="e.g. 250000" 
+                onchange="updateWeddingDetails()" 
+                class="w-full text-xs p-2.5 bg-stone-50 border border-brand-200 rounded-xl focus:ring-1 focus:ring-brand-700 font-semibold text-brand-900" 
+              />
+            </div>
+
+            <div class="bg-brand-100/60 border border-brand-200 rounded-2xl p-3 flex flex-col justify-center items-center text-center">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-brand-700">Days to Wedding</span>
+              <span id="countdown-display" class="font-serif-luxury text-2xl font-bold text-stone-900 mt-0.5">Set Date</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION B: BUDGET ALLOCATION & SPEND SUMMARY -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white border border-brand-200 rounded-3xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Total Budget</p>
+            <p id="stat-total-budget" class="font-serif-luxury text-2xl font-bold text-stone-900 mt-1">R 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Configured target spend</p>
+          </div>
+
+          <div class="bg-white border border-brand-200 rounded-3xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Committed / Quoted</p>
+            <p id="stat-committed-spend" class="font-serif-luxury text-2xl font-bold text-brand-700 mt-1">R 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Sum of quotes from shortlisted vendors</p>
+          </div>
+
+          <div class="bg-white border border-brand-200 rounded-3xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Remaining Buffer</p>
+            <p id="stat-remaining-budget" class="font-serif-luxury text-2xl font-bold text-emerald-700 mt-1">R 0</p>
+            <p class="text-[11px] text-stone-400 mt-1">Available buffer</p>
+          </div>
+        </div>
+
+        <!-- Budget Progress Bar -->
+        <div class="bg-white border border-brand-200 rounded-2xl p-4 shadow-sm">
+          <div class="flex justify-between text-xs font-semibold text-stone-600 mb-1.5">
+            <span>Budget Utilization</span>
+            <span id="budget-percentage-text">0% Allocated</span>
+          </div>
+          <div class="w-full bg-stone-100 rounded-full h-3 overflow-hidden border border-brand-100">
+            <div id="budget-progress-bar" class="bg-brand-700 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- SECTION C: INTERACTIVE SHORTLISTED VENDORS & NEGOTIATION TRACKER -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-serif-luxury text-xl font-bold text-stone-900">Shortlisted Vendors & Quotes</h3>
+              <p class="text-xs text-stone-500">Track quotes, update booking statuses, and retain negotiation notes.</p>
+            </div>
+            <span id="shortlist-count-badge" class="text-xs font-bold text-stone-600 bg-white border border-brand-200 px-3 py-1 rounded-full">
+              0 Vendors Saved
+            </span>
+          </div>
+
+          <!-- Empty State -->
+          <div id="shortlist-empty-state" class="bg-white border border-brand-200 rounded-3xl p-10 text-center max-w-lg mx-auto my-6">
+            <div class="w-12 h-12 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-serif-luxury">♡</div>
+            <h4 class="font-serif-luxury text-base font-bold text-stone-900">No vendors shortlisted yet</h4>
+            <p class="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
+              Click any category on the left to filter the directory, then heart vendors to track quotes here.
+            </p>
+            <button onclick="switchView('directory')" class="mt-4 text-xs font-semibold uppercase tracking-wider bg-brand-800 hover:bg-brand-900 text-white px-5 py-2.5 rounded-full transition shadow-sm">
+              Browse Directory
+            </button>
+          </div>
+
+          <!-- Items List -->
+          <div id="shortlist-items-container" class="space-y-4 hidden"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- VIEW 3: TRANSPARENT VENDOR PRICING                                        -->
+  <!-- ========================================================================= -->
+  <section id="view-pricing" class="view-panel hidden flex-grow py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+    <div class="max-w-3xl mx-auto text-center mb-14">
+      <span class="text-xs font-bold uppercase tracking-widest text-brand-700 bg-brand-100 px-3 py-1 rounded-full border border-brand-200">
+        Transparent Growth for South African Vendors
+      </span>
+      <h2 class="font-serif-luxury text-3xl sm:text-4xl font-bold text-stone-900 mt-3">
+        Simple, Fair Pricing. No Hidden Commissions.
+      </h2>
+      <p class="text-stone-600 text-sm mt-3">
+        Connect directly with couples via WhatsApp and your official website. Zero booking commission fees.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+      
+      <!-- Tier 1: Free -->
+      <div class="bg-white border border-brand-200 rounded-3xl p-8 flex flex-col justify-between shadow-sm">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Starter</span>
+          <h3 class="font-serif-luxury text-2xl font-bold text-stone-900 mt-1">Free Listing</h3>
+          <p class="text-xs text-stone-600 mt-2">Essential presence in the curated Western Cape wedding directory.</p>
+          
+          <div class="mt-6 pb-6 border-b border-brand-100">
+            <span class="font-serif-luxury text-4xl font-bold text-stone-900">R 0</span>
+            <span class="text-xs text-stone-500">/ forever free</span>
+          </div>
+
+          <ul class="mt-6 space-y-3 text-xs text-stone-700">
+            <li class="flex items-center gap-2">✓ Verified Directory Listing</li>
+            <li class="flex items-center gap-2">✓ Indexed in 1 Category & Region</li>
+            <li class="flex items-center gap-2">✓ Business Name, Suburb & Region</li>
+            <li class="flex items-center gap-2">✓ Direct Link to Official Website</li>
+            <li class="flex items-center gap-2 text-stone-400">✗ No Portfolio Photos (Text-only)</li>
+            <li class="flex items-center gap-2 text-stone-400">✗ No 1-Tap WhatsApp Lead Button</li>
+            <li class="flex items-center gap-2 text-stone-400">✗ Placed Below Paid Listings</li>
+          </ul>
+        </div>
+        <a href="https://wa.me/27711234567?text=Hi%2C%20I%20would%20like%20to%20add%20my%20wedding%20business%20to%20wed-dir%20on%20the%20Free%20tier." target="_blank" rel="noopener noreferrer" class="mt-8 w-full text-center text-xs font-semibold uppercase tracking-wider bg-stone-100 hover:bg-stone-200 text-stone-800 py-3 rounded-xl transition block">
+          Get Listed Free
+        </a>
+      </div>
+
+      <!-- Tier 2: Visual (R99/mo for 15 Pictures) -->
+      <div class="bg-white border-2 border-brand-700 rounded-3xl p-8 flex flex-col justify-between shadow-lg relative transform md:-translate-y-2">
+        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-700 text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm">
+          Most Popular
+        </span>
+
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-700">Visual Portfolio</span>
+          <h3 class="font-serif-luxury text-2xl font-bold text-stone-900 mt-1">Visual Showcase</h3>
+          <p class="text-xs text-stone-600 mt-2">Display your visual portfolio so your business stands out from text-only listings.</p>
+          
+          <div class="mt-6 pb-6 border-b border-brand-100">
+            <span class="font-serif-luxury text-4xl font-bold text-stone-900">R 99</span>
+            <span class="text-xs text-stone-500">/ month</span>
+          </div>
+
+          <ul class="mt-6 space-y-3 text-xs text-stone-700">
+            <li class="flex items-center gap-2 font-semibold text-brand-900">✓ Up to 15 High-Resolution Portfolio Pictures</li>
+            <li class="flex items-center gap-2 font-semibold text-stone-900">✓ 1-Tap Direct WhatsApp Lead Button</li>
+            <li class="flex items-center gap-2">✓ Stands Out Directly Above Free Listings</li>
+            <li class="flex items-center gap-2">✓ Direct Official Website Link</li>
+            <li class="flex items-center gap-2">✓ Visual Showcase Supplier Badge</li>
+            <li class="flex items-center gap-2">✓ Send us your 15 photos to load directly</li>
+          </ul>
+        </div>
+        <a href="https://wa.me/27711234567?text=Hi%2C%20I%20would%20like%20to%20upgrade%20my%20business%20to%20the%20R99%20plan%20(15%20pictures)%20on%20wed-dir." target="_blank" rel="noopener noreferrer" class="mt-8 w-full text-center text-xs font-semibold uppercase tracking-wider bg-brand-800 hover:bg-brand-900 text-white py-3 rounded-xl transition shadow-md block">
+          Choose R99 Plan (15 Pictures)
+        </a>
+      </div>
+
+      <!-- Tier 3: Top Tier Section -->
+      <div class="bg-white border border-brand-200 rounded-3xl p-8 flex flex-col justify-between shadow-sm">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Premier Spotlight</span>
+          <h3 class="font-serif-luxury text-2xl font-bold text-stone-900 mt-1">Top Tier Section</h3>
+          <p class="text-xs text-stone-600 mt-2">Maximum exposure pinned at the very top of each respective directory section.</p>
+          
+          <div class="mt-6 pb-6 border-b border-brand-100">
+            <span class="font-serif-luxury text-3xl font-bold text-stone-900">Contact Us</span>
+            <span class="text-xs text-stone-500">/ tailored pricing</span>
+          </div>
+
+          <ul class="mt-6 space-y-3 text-xs text-stone-700">
+            <li class="flex items-center gap-2 font-semibold text-brand-800">✓ Pinned at the Very Top of Your Category</li>
+            <li class="flex items-center gap-2 font-semibold text-stone-900">✓ Priority Placement Above R99 & Free Tiers</li>
+            <li class="flex items-center gap-2">✓ Full High-Resolution Portfolio Showcase</li>
+            <li class="flex items-center gap-2">✓ Direct WhatsApp & Website Inquire Buttons</li>
+            <li class="flex items-center gap-2">✓ Exclusive ★ Top Tier Partner Badge</li>
+            <li class="flex items-center gap-2">✓ Priority Support & Direct Loading</li>
+          </ul>
+        </div>
+        <a href="https://wa.me/27711234567?text=Hi%2C%20I%20would%20like%20to%20inquire%20about%20pricing%20for%20the%20Top%20Tier%20section%20on%20wed-dir." target="_blank" rel="noopener noreferrer" class="mt-8 w-full text-center text-xs font-semibold uppercase tracking-wider bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl transition block">
+          Contact for Top Tier Pricing
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Global Footer -->
+  <footer class="bg-white border-t border-brand-200 py-12 mt-16 text-center text-xs text-stone-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <p class="font-serif-luxury text-xl font-bold text-stone-900 mb-1">wed<span class="text-brand-600">·</span>dir</p>
+      <p class="text-stone-400">Curated Wedding Directory & Couple Management Suite • Western Cape, South Africa</p>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT APPLICATION CORE                                               -->
+  <!-- ========================================================================= -->
+  <script>
+    // 1. Supabase Initialization
+    const SUPABASE_URL = 'https://mzhuaytwecvvwnoaifuq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_JRpVJAavkVNKWCuZen5kpw_kFpRcbDz';
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 2. Application State
+    let allVendors = [];
+    let currentUser = null;
+    let shortlist = JSON.parse(localStorage.getItem('wed_dir_shortlist') || '[]');
+    let weddingProfile = JSON.parse(localStorage.getItem('wed_dir_profile') || '{"date":"","guests":80,"budget":200000}');
+    let stagedPhotos = [];
+
+    // 3. Complete 9 Categories Definition
+    const categories = [
+      { id: 'venues', label: 'Venues', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'photographers', label: 'Photography', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'planners', label: 'Planners', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'caterers', label: 'Catering', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'decor_floral', label: 'Floral & Decor', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'attire_beauty', label: 'Attire & Beauty', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'music_dj', label: 'Music & DJs', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'stationery', label: 'Stationery', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' },
+      { id: 'transport', label: 'Vehicle Hire', badge: 'bg-stone-100 text-stone-800 border-stone-200/80' }
+    ];
+
+    function getVendorImage(v) {
+      if (!v) return null;
+      if (v.photos && Array.isArray(v.photos) && v.photos.length > 0 && v.photos[0]) {
+        return v.photos[0];
+      }
+      return null;
+    }
+
+    function getWhatsAppLink(phone, name) {
+      if (!phone) return null;
+      let digits = phone.replace(/[^0-9]/g, '');
+      if (digits.startsWith('0')) digits = '27' + digits.substring(1);
+      if (digits.length < 10) return null;
+      const msg = encodeURIComponent(`Hi ${name}, I found your listing on wed-dir and would like to inquire about wedding availability.`);
+      return `https://wa.me/${digits}?text=${msg}`;
+    }
+
+    // 4. Google OAuth
+    async function signInWithGoogle() {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) alert('Authentication error: ' + error.message);
+    }
+
+    async function signOut() {
+      await client.auth.signOut();
+      window.location.reload();
+    }
+
+    async function checkUserSession() {
+      const { data: { session } } = await client.auth.getSession();
+      updateAuthUI(session ? session.user : null);
+
+      client.auth.onAuthStateChange((_event, session) => {
+        updateAuthUI(session ? session.user : null);
+      });
+    }
+
+    function updateAuthUI(user) {
+      currentUser = user;
+      const btnLogin = document.getElementById('btn-google-login');
+      const userProfile = document.getElementById('user-profile');
+      const userName = document.getElementById('user-name');
+      const userAvatar = document.getElementById('user-avatar');
+
+      if (user) {
+        btnLogin.classList.add('hidden');
+        userProfile.classList.remove('hidden');
+        userProfile.classList.add('flex');
+        userName.textContent = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member';
+        userAvatar.src = user.user_metadata?.avatar_url || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(userName.textContent);
+      } else {
+        btnLogin.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+        userProfile.classList.remove('flex');
+      }
+    }
+
+    // 5. View Switcher
+    function switchView(viewId) {
+      document.querySelectorAll('.view-panel').forEach(panel => panel.classList.add('hidden'));
+      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+
+      const target = document.getElementById(`view-${viewId}`);
+      const tabTarget = document.getElementById(`tab-${viewId}`);
+
+      if (target) target.classList.remove('hidden');
+      if (tabTarget) tabTarget.classList.add('active');
+
+      if (viewId === 'couples') renderCouplesManagementSuite();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 6. Province, Region & Suburb Cascade Logic
+    const PROVINCE_REGIONS = {
+      'Western Cape': [
+        'Cape Winelands',
+        'Cape Town',
+        'West Coast',
+        'Garden Route',
+        'Overberg',
+        'Klein Karoo'
+      ],
+      'Gauteng': [
+        'Johannesburg',
+        'Pretoria',
+        'Cradle of Humankind',
+        'Magaliesburg'
+      ],
+      'KwaZulu-Natal': [
+        'Midlands',
+        'Durban',
+        'Drakensberg',
+        'North Coast',
+        'South Coast'
+      ],
+      'Eastern Cape': [
+        'Gqeberha / Port Elizabeth',
+        'St Francis Bay & Jeffreys Bay',
+        'Wild Coast',
+        'Kariega & Sunshine Coast'
+      ],
+      'Mpumalanga': [
+        'Lowveld & Kruger',
+        'Dullstroom & Highlands',
+        'Panorama Route'
+      ],
+      'Free State': [
+        'Clarens & Eastern Free State',
+        'Bloemfontein'
+      ],
+      'North West': [
+        'Hartbeespoort & Magalies',
+        'Pilanesberg'
+      ],
+      'Limpopo': [
+        'Waterberg',
+        'Magoebaskloof',
+        'Polokwane'
+      ],
+      'Northern Cape': [
+        'Kimberley',
+        'Namaqualand'
+      ]
+    };
+
+    function populateRegionFilter() {
+      const provSelect = document.getElementById('filter-province');
+      const regSelect = document.getElementById('filter-region');
+      if (!regSelect) return;
+      const selectedProv = provSelect ? provSelect.value : 'all';
+
+      let regions = [];
+      if (selectedProv === 'all') {
+        const dbRegions = allVendors.map(v => v.region).filter(Boolean);
+        regions = [...new Set([...(PROVINCE_REGIONS['Western Cape'] || []), ...dbRegions])].sort();
+      } else if (PROVINCE_REGIONS[selectedProv]) {
+        const dbRegions = allVendors.filter(v => (v.province || 'Western Cape') === selectedProv).map(v => v.region).filter(Boolean);
+        regions = [...new Set([...PROVINCE_REGIONS[selectedProv], ...dbRegions])].sort();
+      } else {
+        const dbRegions = allVendors.filter(v => (v.province || 'Western Cape') === selectedProv).map(v => v.region).filter(Boolean);
+        regions = [...new Set(dbRegions)].sort();
+      }
+
+      const prevVal = regSelect.value;
+      regSelect.innerHTML = '<option value="all">All Regions</option>' +
+        regions.map(r => `<option value="${r}">${r}</option>`).join('');
+
+      if (regions.includes(prevVal)) {
+        regSelect.value = prevVal;
+      } else {
+        regSelect.value = 'all';
+      }
+    }
+
+    function populateSuburbFilter() {
+      const provSelect = document.getElementById('filter-province');
+      const regSelect = document.getElementById('filter-region');
+      const suburbSelect = document.getElementById('filter-suburb');
+      if (!suburbSelect) return;
+      
+      const selectedProv = provSelect ? provSelect.value : 'all';
+      const selectedReg = regSelect ? regSelect.value : 'all';
+
+      let pool = allVendors;
+      if (selectedProv !== 'all') {
+        pool = pool.filter(v => (v.province || 'Western Cape') === selectedProv);
+      }
+      if (selectedReg !== 'all') {
+        pool = pool.filter(v => v.region === selectedReg);
+      }
+
+      const uniqueSuburbs = [...new Set(pool.map(v => v.suburb).filter(Boolean))].sort();
+
+      const prevSub = suburbSelect.value;
+      suburbSelect.innerHTML = '<option value="all">All Towns / Suburbs</option>' +
+        uniqueSuburbs.map(s => `<option value="${s}">${s}</option>`).join('');
+      
+      if (uniqueSuburbs.includes(prevSub)) {
+        suburbSelect.value = prevSub;
+      } else {
+        suburbSelect.value = 'all';
+      }
+    }
+
+    function handleProvinceChange() {
+      populateRegionFilter();
+      populateSuburbFilter();
+      handleFilterChange();
+    }
+
+    function handleRegionChange() {
+      populateSuburbFilter();
+      handleFilterChange();
+    }
+
+    // 7. Load Data from Supabase
+    async function loadDirectory() {
+      try {
+        const { data, error } = await client
+          .from('listings')
+          .select('id, business_name, name, category, province, suburb, region, phone, website_url, tier, is_verified, photos, description')
+          .order('business_name', { ascending: true });
+
+        if (error) throw error;
+        allVendors = data || [];
+        
+        populateRegionFilter();
+        populateSuburbFilter();
+        populateVendorSelectDropdown(allVendors);
+        handleFilterChange();
+        renderCouplesManagementSuite();
+      } catch (err) {
+        console.error('Error querying Supabase:', err);
+        document.getElementById('listings-grid').innerHTML = `
+          <div class="col-span-full py-16 text-center text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl p-6">
+            <p class="font-bold text-sm">Database connection error</p>
+            <p class="text-xs text-rose-700 mt-1">${err.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // 8. Filter Logic & Card Rendering
+    function handleFilterChange() {
+      const selectedCat = document.getElementById('filter-category').value;
+      const provSelect = document.getElementById('filter-province');
+      const selectedProv = provSelect ? provSelect.value : 'all';
+      const selectedReg = document.getElementById('filter-region') ? document.getElementById('filter-region').value : 'all';
+      const selectedSub = document.getElementById('filter-suburb') ? document.getElementById('filter-suburb').value : 'all';
+      const selectedSort = document.getElementById('filter-sort') ? document.getElementById('filter-sort').value : 'featured_first';
+
+      // Update Active Badges
+      const catText = document.getElementById('filter-category').options[document.getElementById('filter-category').selectedIndex].text;
+      const provText = provSelect ? provSelect.options[provSelect.selectedIndex].text : 'All Provinces';
+      const regSelect = document.getElementById('filter-region');
+      const regText = regSelect ? regSelect.options[regSelect.selectedIndex].text : 'All Regions';
+      
+      if (document.getElementById('tag-category')) document.getElementById('tag-category').textContent = catText;
+      if (document.getElementById('tag-province')) document.getElementById('tag-province').textContent = provText;
+      if (document.getElementById('tag-region')) document.getElementById('tag-region').textContent = regText;
+
+      let filtered = allVendors.filter(v => {
+        const matchCat = selectedCat === 'all' || v.category === selectedCat;
+        const vProv = v.province || 'Western Cape';
+        const matchProv = selectedProv === 'all' || vProv === selectedProv;
+        const matchReg = selectedReg === 'all' || v.region === selectedReg;
+        const matchSub = selectedSub === 'all' || v.suburb === selectedSub;
+        return matchCat && matchProv && matchReg && matchSub;
+      });
+
+      function getTierWeight(v) {
+        const t = (v.tier || 'free').toLowerCase();
+        if (t === 'featured') return 3;
+        if (t === 'visual') return 2;
+        return 1;
+      }
+
+      filtered.sort((a, b) => {
+        const rankDiff = getTierWeight(b) - getTierWeight(a);
+        if (rankDiff !== 0) return rankDiff;
+
+        if (selectedSort === 'name_desc') {
+          return (b.business_name || b.name || '').localeCompare(a.business_name || a.name || '');
+        }
+        return (a.business_name || a.name || '').localeCompare(b.business_name || b.name || '');
+      });
+
+      document.getElementById('vendor-count').textContent = filtered.length;
+      renderDirectoryGrid(filtered);
+    }
+
+    function renderDirectoryGrid(vendors) {
+      const grid = document.getElementById('listings-grid');
+
+      if (vendors.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white border border-brand-200 rounded-3xl p-8 shadow-sm">
+            <p class="font-serif-luxury text-xl font-bold text-stone-800">No vendors match this filter selection</p>
+            <p class="text-xs text-stone-500 mt-1">Try broadening your category or region dropdown selection above.</p>
+            <button onclick="resetAllFilters()" class="mt-4 text-xs font-semibold uppercase tracking-wider bg-brand-800 hover:bg-brand-900 text-white px-5 py-2.5 rounded-full transition shadow-sm">
+              Reset Filters
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = vendors.map(v => {
+        const bName = v.business_name || v.name || 'Vendor';
+        const catInfo = categories.find(c => c.id === v.category) || { label: v.category, badge: 'bg-stone-100 text-stone-700 border-stone-200' };
+        const wa = getWhatsAppLink(v.phone, bName);
+        const isSaved = shortlist.some(item => item.id === v.id);
+
+        const tierLower = (v.tier || 'free').toLowerCase();
+        const isFeatured = tierLower === 'featured';
+        const isVisual = tierLower === 'visual';
+        const isPaid = isFeatured || isVisual;
+        
+        const hasCustomPhotos = v.photos && Array.isArray(v.photos) && v.photos.length > 0 && v.photos[0];
+        const imgUrl = getVendorImage(v);
+
+        if (isPaid && hasCustomPhotos && imgUrl) {
+          return `
+            <div class="bg-white rounded-3xl border ${isFeatured ? 'border-brand-700/80 ring-2 ring-brand-700/20 shadow-md' : 'border-brand-200 shadow-sm'} overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-brand-500 transition-all duration-300 group">
+              
+              <div class="relative w-full h-56 overflow-hidden bg-stone-100">
+                <img src="${imgUrl}" alt="${bName}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent"></div>
+                
+                <div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  <div class="flex items-center gap-1.5 flex-wrap pointer-events-auto">
+                    <span class="bg-white/95 backdrop-blur-md text-stone-800 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
+                      ${catInfo.label}
+                    </span>
+                    ${isFeatured ? `
+                      <span class="bg-stone-900/90 backdrop-blur-md text-amber-200 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm border border-amber-300/30">
+                        ★ Top Tier Partner
+                      </span>
+                    ` : `
+                      <span class="bg-brand-900/80 backdrop-blur-md text-brand-100 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm">
+                        📸 Visual Showcase
+                      </span>
+                    `}
+                  </div>
+
+                  <button onclick="toggleShortlist('${v.id}')" title="Save to Planning Suite" class="pointer-events-auto w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-stone-400 hover:text-rose-600 hover:bg-white shadow-sm transition active:scale-90">
+                    <span class="${isSaved ? 'text-rose-600 font-bold scale-110' : 'text-stone-400 group-hover:text-stone-600'} text-base transition">
+                      ${isSaved ? '♥' : '♡'}
+                    </span>
+                  </button>
+                </div>
+
+                <div class="absolute bottom-3 left-3 text-white text-xs font-medium flex items-center gap-1">
+                  <span class="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-medium border border-white/10 text-white flex items-center gap-1">
+                    <span>📍</span>
+                    <span>${v.suburb ? `${v.suburb}, ` : ''}${v.region || 'Western Cape'}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div class="p-5 flex flex-col flex-grow justify-between">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <h3 class="font-serif-luxury text-xl font-bold text-stone-900 group-hover:text-brand-800 transition line-clamp-1" title="${bName}">
+                      ${bName}
+                    </h3>
+                    <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </span>
+                  </div>
+
+                  <p class="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                    ${v.description || `Curated wedding ${catInfo.label.toLowerCase()} specialist in${v.suburb || v.region || 'Western Cape'}, offering bespoke celebrations.`}
+                  </p>
+                </div>
+
+                <div class="pt-4 mt-5 border-t border-stone-100 flex items-center justify-between gap-3">
+                  ${wa ? `
+                    <a href="${wa}" target="_blank" rel="noopener noreferrer" 
+                       class="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 rounded-xl transition shadow-sm">
+                      <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                      </svg>
+                      Direct WhatsApp
+                    </a>
+                  ` : `
+                    <span class="text-[11px] text-stone-400 font-medium">Inquiries via Web</span>
+                  `}
+
+                  ${v.website_url ? `
+                    <a href="${v.website_url.startsWith('http') ? v.website_url : 'https://' + v.website_url}" 
+                       target="_blank" rel="noopener noreferrer" 
+                       class="inline-flex items-center gap-1 text-xs font-semibold text-stone-700 hover:text-brand-800 transition group/link">
+                      <span>Website</span>
+                      <span class="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform">↗</span>
+                    </a>
+                  ` : ''}
+                </div>
+
+              </div>
+
+            </div>
+          `;
+        }
+
+        return `
+          <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-sm hover:border-brand-300 hover:shadow-md transition duration-200 flex flex-col justify-between group">
+            
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-stone-600 bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200">
+                  ${catInfo.label}
+                </span>
+
+                <button onclick="toggleShortlist('${v.id}')" title="Save to Planning Suite" class="w-8 h-8 rounded-full border border-stone-200 hover:border-rose-400 bg-white flex items-center justify-center transition shadow-sm">
+                  <span class="${isSaved ? 'text-rose-600 font-bold' : 'text-stone-300 group-hover:text-stone-400'} text-base">
+                    ${isSaved ? '♥' : '♡'}
+                  </span>
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between gap-1.5 mb-1">
+                <h3 class="font-serif-luxury text-lg font-bold text-stone-900 group-hover:text-brand-800 transition line-clamp-1" title="${bName}">
+                  ${bName}
+                </h3>
+              </div>
+
+              <p class="text-xs text-stone-500 flex items-center gap-1">
+                📍 ${v.suburb ? `${v.suburb}, ` : ''}${v.region || 'Western Cape'}
+              </p>
+            </div>
+
+            <div class="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between gap-3 text-xs">
+              <span class="text-[11px] text-stone-400 italic">Free listing</span>
+
+              ${v.website_url ? `
+                <a href="${v.website_url.startsWith('http') ? v.website_url : 'https://' + v.website_url}" 
+                   target="_blank" rel="noopener noreferrer" 
+                   class="font-semibold text-stone-700 hover:text-brand-800 inline-flex items-center gap-1 transition">
+                  <span>Website</span>
+                  <span>↗</span>
+                </a>
+              ` : `
+                <button onclick="switchView('pricing')" class="text-[11px] text-brand-700 hover:underline">
+                  Get Listed
+                </button>
+              `}
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function resetAllFilters() {
+      if (document.getElementById('filter-category')) document.getElementById('filter-category').value = 'all';
+      if (document.getElementById('filter-region')) document.getElementById('filter-region').value = 'all';
+      if (document.getElementById('filter-suburb')) document.getElementById('filter-suburb').value = 'all';
+      if (document.getElementById('filter-sort')) document.getElementById('filter-sort').value = 'featured_first';
+      populateRegionFilter();
+      populateSuburbFilter();
+      handleFilterChange();
+    }
+
+    // 9. COUPLE'S PLANNING SUITE LOGIC
+    function updateWeddingDetails() {
+      weddingProfile.date = document.getElementById('planner-date').value;
+      weddingProfile.guests = Number(document.getElementById('planner-guests').value) || 0;
+      weddingProfile.budget = Number(document.getElementById('planner-budget').value) || 0;
+      localStorage.setItem('wed_dir_profile', JSON.stringify(weddingProfile));
+      renderCouplesManagementSuite();
+    }
+
+    function renderCouplesManagementSuite() {
+      document.getElementById('planner-date').value = weddingProfile.date || '';
+      document.getElementById('planner-guests').value = weddingProfile.guests || '';
+      document.getElementById('planner-budget').value = weddingProfile.budget || '';
+
+      const countdownDisplay = document.getElementById('countdown-display');
+      if (weddingProfile.date) {
+        const today = new Date();
+        const target = new Date(weddingProfile.date);
+        const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        countdownDisplay.textContent = diffDays > 0 ? `${diffDays} Days` : (diffDays === 0 ? 'Today!' : 'Completed');
+      } else {
+        countdownDisplay.textContent = 'Set Date';
+      }
+
+      const totalBudget = Number(weddingProfile.budget) || 0;
+      const committedSpend = shortlist.reduce((sum, item) => sum + (Number(item.quote_amount) || 0), 0);
+      const remainingBudget = Math.max(0, totalBudget - committedSpend);
+
+      document.getElementById('stat-total-budget').textContent = `R ${totalBudget.toLocaleString()}`;
+      document.getElementById('stat-committed-spend').textContent = `R ${committedSpend.toLocaleString()}`;
+      document.getElementById('stat-remaining-budget').textContent = `R ${remainingBudget.toLocaleString()}`;
+
+      const pct = totalBudget > 0 ? Math.min(100, Math.round((committedSpend / totalBudget) * 100)) : 0;
+      document.getElementById('budget-percentage-text').textContent = `${pct}% Allocated (R ${committedSpend.toLocaleString()} of R ${totalBudget.toLocaleString()})`;
+      document.getElementById('budget-progress-bar').style.width = `${pct}%`;
+      if (committedSpend > totalBudget && totalBudget > 0) {
+        document.getElementById('budget-progress-bar').classList.add('bg-rose-600');
+        document.getElementById('budget-progress-bar').classList.remove('bg-brand-700');
+      } else {
+        document.getElementById('budget-progress-bar').classList.remove('bg-rose-600');
+        document.getElementById('budget-progress-bar').classList.add('bg-brand-700');
+      }
+
+      const checklistContainer = document.getElementById('category-checklist-deck');
+      let coveredCategoriesCount = 0;
+
+      checklistContainer.innerHTML = categories.map(cat => {
+        const matchingVendors = shortlist.filter(i => i.category === cat.id);
+        const hasBooked = matchingVendors.some(i => i.status === 'Booked');
+        const hasShortlisted = matchingVendors.length > 0;
+
+        if (hasBooked || hasShortlisted) coveredCategoriesCount++;
+
+        let statusLabel = '';
+        let statusDot = 'bg-stone-200';
+        let rowClass = 'hover:bg-stone-50';
+        if (hasBooked) {
+          statusLabel = 'Booked';
+          statusDot = 'bg-emerald-500';
+          rowClass = 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200';
+        } else if (hasShortlisted) {
+          statusLabel = `${matchingVendors.length} saved`;
+          statusDot = 'bg-brand-500';
+          rowClass = 'bg-brand-50 hover:bg-brand-100 border-brand-200';
+        }
+
+        return `
+          <button 
+            onclick="quickFilterCategory('${cat.id}')"
+            class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-transparent ${rowClass} transition text-left group"
+            title="Filter directory by ${cat.label}"
+          >
+            <span class="text-xs font-semibold text-stone-800 group-hover:text-brand-900">${cat.label}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              ${statusLabel ? `<span class="text-[10px] font-semibold text-stone-500">${statusLabel}</span>` : `<span class="text-[10px] text-stone-400">Browse →</span>`}
+              <span class="w-2 h-2 rounded-full ${statusDot} shrink-0"></span>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      document.getElementById('checklist-completion-badge').textContent = `${coveredCategoriesCount} / 9 Covered`;
+
+      const emptyState = document.getElementById('shortlist-empty-state');
+      const container = document.getElementById('shortlist-items-container');
+      document.getElementById('shortlist-count-badge').textContent = `${shortlist.length} Vendors Saved`;
+
+      if (shortlist.length === 0) {
+        emptyState.classList.remove('hidden');
+        container.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.classList.remove('hidden');
+
+      container.innerHTML = shortlist.map((item, index) => {
+        const catInfo = categories.find(c => c.id === item.category) || { label: item.category, badge: 'bg-stone-100 text-stone-800' };
+        const wa = getWhatsAppLink(item.phone, item.business_name);
+        const itemImg = item.photo || null;
+        const initials = (item.business_name || 'V').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+        return `
+          <div class="bg-white border border-brand-200 rounded-2xl p-5 shadow-sm flex flex-col lg:flex-row items-start justify-between gap-5">
+            
+            <!-- Left: Vendor Info & Planning Notes directly below the vendor name -->
+            <div class="flex-1 min-w-0 w-full flex items-start gap-3.5">
+              ${itemImg ? `
+                <img src="${itemImg}" alt="${item.business_name}" class="w-14 h-14 rounded-xl object-cover shrink-0 border border-brand-200 shadow-sm mt-0.5" />
+              ` : `
+                <div class="w-14 h-14 rounded-xl shrink-0 bg-brand-100 border border-brand-200 shadow-sm flex items-center justify-center font-serif-luxury text-base font-bold text-brand-700 mt-0.5">
+                  ${initials}
+                </div>
+              `}
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${catInfo.badge}">
+                    ${catInfo.label}
+                  </span>
+                  <span class="text-xs text-stone-500">📍 ${item.suburb || item.region}</span>
+                </div>
+                <h4 class="font-serif-luxury text-base font-bold text-stone-900 truncate mb-2.5" title="${item.business_name}">${item.business_name}</h4>
+                
+                <!-- Planning Notes Section (Placed below vendor name for expanded reading space) -->
+                <div>
+                  <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">Planning Notes</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. includes sound setup, catering menu options, payment schedule..." 
+                    value="${item.notes || ''}" 
+                    onchange="updateShortlistField(${index}, 'notes', this.value)" 
+                    class="w-full p-2 text-xs border border-brand-200 rounded-xl bg-stone-50 focus:ring-1 focus:ring-brand-700 text-stone-800" 
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Booking Status, Quote, & Quick Actions -->
+            <div class="flex flex-wrap sm:flex-nowrap items-end gap-3 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+              <!-- Status Selector -->
+              <div class="w-full sm:w-44">
+                <label class="block text-[10px] font-bold uppercase text-stone-500 mb-1">Booking Status</label>
+                <select 
+                  onchange="updateShortlistField(${index}, 'status', this.value)"
+                  class="w-full text-xs p-2 bg-stone-50 border border-brand-200 rounded-xl font-semibold ${item.status === 'Booked' ? 'text-emerald-700 bg-emerald-50' : 'text-stone-800'}">
+                  <option value="Shortlisted" ${item.status === 'Shortlisted' ? 'selected' : ''}>📌 Shortlisted</option>
+                  <option value="In Discussion" ${item.status === 'In Discussion' ? 'selected' : ''}>💬 In Discussion</option>
+                  <option value="Quote Received" ${item.status === 'Quote Received' ? 'selected' : ''}>📄 Quote Received</option>
+                  <option value="Booked" ${item.status === 'Booked' ? 'selected' : ''}>✅ Booked / Deposit Paid</option>
+                </select>
+              </div>
+
+              <!-- Quote Input -->
+              <div class="w-full sm:w-32">
+                <label class="block text-[10px] font-bold uppercase text-stone-500 mb-1">Quote (ZAR)</label>
+                <input 
+                  type="number" 
+                  value="${item.quote_amount || 0}" 
+                  placeholder="0"
+                  onchange="updateShortlistField(${index}, 'quote_amount', this.value)" 
+                  class="w-full p-2 text-xs border border-brand-200 rounded-xl bg-stone-50 font-bold text-stone-900 focus:ring-1 focus:ring-brand-700" 
+                />
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${wa ? `
+                  <a href="${wa}" target="_blank" title="WhatsApp Vendor" class="p-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                    <span>WA</span>
+                  </a>
+                ` : ''}
+                <button onclick="toggleShortlist('${item.id}')" title="Remove vendor" class="text-xs text-stone-400 hover:text-rose-600 p-2 border border-stone-200 rounded-xl hover:bg-stone-50">
+                  ✕
+                </button>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function quickFilterCategory(catId) {
+      document.getElementById('filter-category').value = catId;
+      switchView('directory');
+      handleFilterChange();
+    }
+
+    function updateShortlistField(index, field, value) {
+      shortlist[index][field] = value;
+      localStorage.setItem('wed_dir_shortlist', JSON.stringify(shortlist));
+      renderCouplesManagementSuite();
+    }
+
+    function toggleShortlist(vendorId) {
+      const idx = shortlist.findIndex(item => item.id === vendorId);
+      if (idx > -1) {
+        shortlist.splice(idx, 1);
+      } else {
+        const vendor = allVendors.find(v => v.id === vendorId);
+        if (vendor) {
+          shortlist.push({
+            id: vendor.id,
+            business_name: vendor.business_name || vendor.name,
+            category: vendor.category,
+            suburb: vendor.suburb,
+            region: vendor.region,
+            phone: vendor.phone,
+            website_url: vendor.website_url,
+            photo: getVendorImage(vendor),
+            status: 'Shortlisted',
+            quote_amount: 0,
+            notes: ''
+          });
+        }
+      }
+      localStorage.setItem('wed_dir_shortlist', JSON.stringify(shortlist));
+      updateShortlistBadges();
+      handleFilterChange();
+      renderCouplesManagementSuite();
+    }
+
+    function updateShortlistBadges() {
+      const count = shortlist.length;
+      const counter = document.getElementById('shortlist-counter');
+      const counterMobile = document.getElementById('shortlist-counter-mobile');
+      if (counter) counter.textContent = count;
+      if (counterMobile) counterMobile.textContent = count;
+    }
+
+    // 10. Vendor Management Portal (with defensive check)
+    function populateVendorSelectDropdown(vendorList) {
+      const select = document.getElementById('vendor-select');
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Choose one of the 230+ Seed Listings to Edit --</option>' +
+        vendorList.map(v => `
+          <option value="${v.id}">${v.business_name || v.name} (${v.suburb || v.region})</option>
+        `).join('');
+    }
+
+    function filterVendorDropdown(searchQuery) {
+      const q = searchQuery.toLowerCase().trim();
+      const filtered = allVendors.filter(v => {
+        const name = (v.business_name || v.name || '').toLowerCase();
+        const suburb = (v.suburb || '').toLowerCase();
+        return !q || name.includes(q) || suburb.includes(q);
+      });
+      populateVendorSelectDropdown(filtered);
+    }
+
+    function populateVendorForm(vendorId) {
+      const vendor = allVendors.find(v => v.id === vendorId);
+      if (!vendor) return;
+
+      if (document.getElementById('edit-business-name')) document.getElementById('edit-business-name').value = vendor.business_name || vendor.name || '';
+      if (document.getElementById('edit-category')) document.getElementById('edit-category').value = vendor.category || 'venues';
+      if (document.getElementById('edit-province')) document.getElementById('edit-province').value = vendor.province || 'Western Cape';
+      if (document.getElementById('edit-region')) document.getElementById('edit-region').value = vendor.region || 'Cape Winelands';
+      if (document.getElementById('edit-suburb')) document.getElementById('edit-suburb').value = vendor.suburb || '';
+      if (document.getElementById('edit-phone')) document.getElementById('edit-phone').value = vendor.phone || '';
+      if (document.getElementById('edit-website')) document.getElementById('edit-website').value = vendor.website_url || '';
+      if (document.getElementById('edit-tier')) document.getElementById('edit-tier').value = (vendor.tier || 'free').toLowerCase();
+    }
+
+    function handlePhotoSelection(event) {
+      const files = Array.from(event.target.files);
+      if (!files.length) return;
+
+      stagedPhotos = files.map((file, i) => {
+        const estateSlug = ((document.getElementById('edit-business-name') && document.getElementById('edit-business-name').value) || 'vendor').toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const regionSlug = ((document.getElementById('edit-region') && document.getElementById('edit-region').value) || 'western-cape').toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const categorySlug = ((document.getElementById('edit-category') && document.getElementById('edit-category').value) || 'wedding-venue').toLowerCase().replace(/[^a-z0-9]/g, '-');
+        
+        const autoSeoName = `${regionSlug}-${categorySlug}-${estateSlug}-0${i+1}.webp`;
+
+        return {
+          file,
+          previewUrl: URL.createObjectURL(file),
+          seoName: autoSeoName
+        };
+      });
+
+      renderStagedPhotos();
+    }
+
+    function renderStagedPhotos() {
+      const container = document.getElementById('staged-photos-container');
+      if (!container) return;
+      container.classList.remove('hidden');
+
+      container.innerHTML = stagedPhotos.map(item => `
+        <div class="relative bg-stone-100 rounded-xl overflow-hidden border border-brand-200">
+          <img src="${item.previewUrl}" class="w-full h-24 object-cover" />
+          <div class="p-2 bg-white">
+            <span class="inline-block bg-amber-100 text-amber-800 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mb-1">
+              ⏳ Pending Review (&lt;24h)
+            </span>
+            <p class="text-[9px] text-stone-500 font-mono truncate" title="${item.seoName}">
+              ${item.seoName}
+            </p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleVendorSubmit(e) {
+      e.preventDefault();
+      const vendorSelect = document.getElementById('vendor-select');
+      const vendorId = vendorSelect ? vendorSelect.value : null;
+      if (!vendorId) {
+        alert('Please select a business listing to update.');
+        return;
+      }
+
+      const updated = {
+        business_name: document.getElementById('edit-business-name').value,
+        name: document.getElementById('edit-business-name').value,
+        category: document.getElementById('edit-category').value,
+        province: document.getElementById('edit-province') ? document.getElementById('edit-province').value : 'Western Cape',
+        region: document.getElementById('edit-region').value,
+        suburb: document.getElementById('edit-suburb').value,
+        phone: document.getElementById('edit-phone').value,
+        website_url: document.getElementById('edit-website').value,
+        tier: document.getElementById('edit-tier').value
+      };
+
+      try {
+        const { error } = await client
+          .from('listings')
+          .update(updated)
+          .eq('id', vendorId);
+
+        if (error) throw error;
+
+        alert('Success! Listing details updated. Staged portfolio photos are queued under 24-Hour Editorial Review.');
+        await loadDirectory();
+        switchView('directory');
+      } catch (err) {
+        alert('Update error: ' + err.message);
+      }
+    }
+
+    // 11. Paystack Simulation
+    function simulatePaystack(planName, priceZar) {
+      alert(`Paystack Checkout Initialized:\n\nPlan: ${planName}\nAmount: R${priceZar}/month\n\n(In production, this opens your Paystack South Africa modal supporting card and Ozow Instant EFT).`);
+    }
+
+    // Startup
+    document.addEventListener('DOMContentLoaded', () => {
+      updateShortlistBadges();
+      checkUserSession();
+      loadDirectory();
+    });
+  </script>
+</body>
+</html>
